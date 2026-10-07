@@ -1,0 +1,98 @@
+name: Android APK Release
+
+# Wraps the web app in a Capacitor Android shell, builds an APK and
+# attaches it to a GitHub Release.
+#   - Push a tag like v1.0.0          -> release for that tag
+#   - Run manually (workflow_dispatch) -> release for the tag you type in
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install --no-save @capacitor/core@^8 @capacitor/cli@^8 @capacitor/android@^8
+
+      - name: Build web app
+        # Capacitor serves the app from the WebView root, so base is "/".
+        run: BASE_PATH="/" npm run build
+
+      - name: Create Android project
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Set app version
+        run: |
+          VERSION="${TAG#v}"
+          CODE="${{ github.run_number }}"
+          sed -i "s/versionCode [0-9]*/versionCode ${CODE}/" android/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"${VERSION}\"/" android/app/build.gradle
+
+      - name: Build APK
+        working-directory: android
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            ./gradlew --no-daemon assembleRelease
+            BT=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+            UNSIGNED=app/build/outputs/apk/release/app-release-unsigned.apk
+            "$ANDROID_HOME/build-tools/$BT/zipalign" -f -p 4 "$UNSIGNED" aligned.apk
+            "$ANDROID_HOME/build-tools/$BT/apksigner" sign \
+              --ks "$RUNNER_TEMP/release.jks" --ks-pass env:KEYSTORE_PASSWORD \
+              --ks-key-alias "$KEY_ALIAS" --key-pass env:KEY_PASSWORD \
+              --out "$GITHUB_WORKSPACE/CodeForge-${TAG}.apk" aligned.apk
+            "$ANDROID_HOME/build-tools/$BT/apksigner" verify "$GITHUB_WORKSPACE/CodeForge-${TAG}.apk"
+          else
+            echo "::warning::No signing secrets set - building a debug-signed APK."
+            ./gradlew --no-daemon assembleDebug
+            cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/CodeForge-${TAG}.apk"
+          fi
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: CodeForge ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: CodeForge-${{ env.TAG }}.apk

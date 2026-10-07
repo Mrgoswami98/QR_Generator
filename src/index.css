@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --surface: 255 255 255;
+    --surface-sunken: 245 247 250;
+    --surface-raised: 255 255 255;
+    --border: 222 228 237;
+    --text: 11 15 23;
+    --text-muted: 103 116 143;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --surface: 17 23 36;
+    --surface-sunken: 11 15 23;
+    --surface-raised: 22 29 45;
+    --border: 39 50 74;
+    --text: 229 233 240;
+    --text-muted: 151 162 184;
+  }
+
+  * {
+    border-color: rgb(var(--border));
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background: rgb(var(--surface-sunken));
+    color: rgb(var(--text));
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Keep focus rings visible for keyboard users without boxing in mouse users. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2;
+    --tw-ring-offset-color: rgb(var(--surface-sunken));
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--border));
+    border-radius: 99px;
+    border: 2px solid rgb(var(--surface-sunken));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--text-muted) / 0.5);
+  }
+
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+  }
+}
+
+@layer components {
+  .surface {
+    background: rgb(var(--surface));
+    border: 1px solid rgb(var(--border));
+  }
+
+  .panel {
+    @apply surface rounded-xl2 shadow-panel;
+  }
+
+  .muted {
+    color: rgb(var(--text-muted));
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-[12px] font-medium tracking-wide;
+    color: rgb(var(--text-muted));
+  }
+
+  .input-base {
+    @apply w-full rounded-lg px-3 py-2 text-sm transition;
+    background: rgb(var(--surface-raised));
+    border: 1px solid rgb(var(--border));
+    color: rgb(var(--text));
+  }
+  .input-base::placeholder {
+    color: rgb(var(--text-muted) / 0.7);
+  }
+  .input-base:hover:not(:disabled) {
+    border-color: rgb(var(--text-muted) / 0.45);
+  }
+  .input-base:focus {
+    @apply outline-none ring-2 ring-brand-500/35;
+    border-color: theme('colors.brand.500');
+  }
+  .input-base:disabled {
+    @apply cursor-not-allowed opacity-55;
+  }
+  .input-base[aria-invalid='true'] {
+    border-color: #f87171;
+    @apply ring-2 ring-red-500/20;
+  }
+
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-lg px-3.5 py-2
+           text-sm font-medium transition active:translate-y-px
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-500;
+  }
+  .btn-ghost {
+    @apply btn;
+    color: rgb(var(--text));
+    border: 1px solid rgb(var(--border));
+    background: rgb(var(--surface-raised));
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: rgb(var(--text-muted) / 0.5);
+  }
+  .btn-subtle {
+    @apply btn;
+    color: rgb(var(--text-muted));
+  }
+  .btn-subtle:hover:not(:disabled) {
+    background: rgb(var(--border) / 0.5);
+    color: rgb(var(--text));
+  }
+  .btn-danger {
+    @apply btn border border-red-500/30 bg-red-500/10 text-red-500 hover:bg-red-500/20;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium;
+  }
+
+  /* The classic alpha checkerboard behind transparent artwork. */
+  .checkerboard {
+    background-image:
+      linear-gradient(45deg, rgb(var(--border) / 0.55) 25%, transparent 25%),
+      linear-gradient(-45deg, rgb(var(--border) / 0.55) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgb(var(--border) / 0.55) 75%),
+      linear-gradient(-45deg, transparent 75%, rgb(var(--border) / 0.55) 75%);
+    background-size: 16px 16px;
+    background-position:
+      0 0,
+      0 8px,
+      8px -8px,
+      -8px 0;
+  }
+
+  input[type='range'] {
+    @apply h-1.5 w-full cursor-pointer appearance-none rounded-full;
+    background: rgb(var(--border));
+  }
+  input[type='range']::-webkit-slider-thumb {
+    @apply h-4 w-4 appearance-none rounded-full bg-brand-500 shadow transition;
+    border: 2px solid rgb(var(--surface));
+  }
+  input[type='range']::-webkit-slider-thumb:hover {
+    @apply scale-110 bg-brand-400;
+  }
+  input[type='range']::-moz-range-thumb {
+    @apply h-4 w-4 rounded-full border-0 bg-brand-500;
+  }
+
+  input[type='color'] {
+    @apply h-9 w-9 shrink-0 cursor-pointer rounded-lg border bg-transparent p-1;
+  }
+  input[type='color']::-webkit-color-swatch-wrapper {
+    @apply p-0;
+  }
+  input[type='color']::-webkit-color-swatch {
+    @apply rounded-md border-0;
+  }
+}
